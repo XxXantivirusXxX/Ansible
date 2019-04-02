@@ -7,6 +7,7 @@
   args:
     creates: /etc/ansible/facts.d/manifests/kube-controller-manager.yaml
   failed_when: "'Failed' in output.stdout"
+  changed_when: no
 
 - name: create joincommand
   shell: |
@@ -16,6 +17,7 @@
 - name: Set join command as fact
   set_fact:
     join_workers: "{{ join_workers.stdout }}"
+  changed_when: no
 
 - name: Create .kube directory
   file:

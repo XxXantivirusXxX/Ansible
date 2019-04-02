@@ -4,3 +4,8 @@
 
 - name: join worker to master
   command: "{{ hostvars['192.168.56.100']['join_workers'] }}"
+  changed_when: no
+  register: output
+  args:
+    creates: /etc/ansible/facts.d/manifests/kube-controller-manager.yaml
+  failed_when: "'Failed' in output.stdout"
