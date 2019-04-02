@@ -1,0 +1,184 @@
+- hosts: all
+  become: yes
+  tasks:
+
+  - name: install docker
+    package: name=docker state=installed
+
+  - name: Disable selinux
+    selinux:
+      state: disabled
+
+  - name: Make sure a service is running and enabled
+    systemd:
+      state: started
+      enabled: yes
+      name: docker
+
+  - name: Remove swapfile from /etc/fstab
+    mount:
+      name: swap
+      fstype: swap
+      state: absent
+  - name: Disable swap
+    command: swapoff -a
+    when: ansible_swaptotal_mb > 0
+
+  # - name: Change docker config
+  #   blockinfile:
+  #     path: /etc/sysctl.d/docker.conf
+  #     block: |
+  #       net.bridge.bridge-nf-call-ip6tables = 1
+  #       net.bridge.bridge-nf-call-iptables = 1
+  #     create: yes
+
+  # - shell: sysctl --system
+
+ 
+  - name: add repo
+    yum_repository:
+      name: kuberepo
+      description: kubernetes-repo
+      baseurl: "https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64"
+      enabled: yes
+      gpgcheck: yes
+      repo_gpgcheck: yes
+      gpgkey:
+        - "https://packages.cloud.google.com/yum/doc/yum-key.gpg"
+        - "https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg"
+
+  - name: install kubelet
+    yum:
+      name: kubelet , kubeadm
+      state: present
+      update_cache: true
+      disable_excludes: kubernetes
+#      enabled: yes
+
+  - name: install packages
+    yum:
+      name: deltarpm, epel-release, ntp, jq, net-tools, bind-utils, moreutils
+      state: present
+      update_cache: true
+#      enabled: yes
+
+  - name: Change docker config
+    blockinfile:
+      path: /etc/sysctl.d/k8s.conf
+      block: |
+        net.bridge.bridge-nf-call-ip6tables = 1
+        net.bridge.bridge-nf-call-iptables = 1
+      create: yes
+
+  - shell: sysctl --system
+    changed_when: no
+
+  - name: start ntpd
+    service:
+      name: ntpd          
+      enabled: yes
+      state: started
+
+#  - name: Patch
+#    shell: |
+#       IPADDR=$(hostname -I | sed 's/10.0.2.15//' | awk '{print $1}') sed -i "s/\(KUBELET_EXTRA_ARGS=\).*/\1--node-ip=${IPADDR}/" /etc/sysconfig/kubelet
+  
+
+
+
+
+- hosts: masters
+  become: yes
+  tasks:
+
+
+
+  # - name: Initialize the cluster
+  #   shell: kubeadm init --pod-network-cidr 10.244.0.0/16 --apiserver-advertise-address 192.168.56.100 > /vagrant/initfile
+  #   changed_when: no
+
+
+
+
+  - name: Initialize the cluster
+    shell: kubeadm init --pod-network-cidr 10.244.0.0/16 --apiserver-advertise-address 192.168.56.100 > /vagrant/initfile
+    register: output
+    args:
+      creates: /etc/kubernetes/manifests/kube-controller-manager.yaml
+    failed_when: "'Failed' in output.stdout"
+#     # args:
+#     #   chdir: $HOME
+#     #   creates: cluster_initialized.txt
+
+  - name: Create .kube directory
+    file:
+      path: $HOME/.kube
+      state: directory
+      mode: 0755
+
+  - name: Copy admin.conf to user's kube config
+    copy:
+      src: /etc/kubernetes/admin.conf
+      dest: $HOME/.kube/config
+      remote_src: yes
+
+
+
+
+#     #  owner: devops
+#     #  group: devops
+
+#  # - name: Take interface
+#  #   shell: IPETHX=$(ip r | grep $(hostname -I | sed 's/10.0.2.15//' | awk '{print $1}') | cut -d' ' -f3)
+
+
+
+
+
+
+  - name: Flannel   
+    shell: kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/bc79dd1505b0c8681ece4de4c0d86c5cd2643275/Documentation/kube-flannel.yml
+    changed_when: no
+
+  - name: Patch
+    shell: |
+      kubectl patch daemonsets kube-flannel-ds-amd64 -n kube-system --patch='{"spec":{"template":{"spec":{"containers":[{"name": "kube-flannel", "args": ["--ip-masq", "--kube-subnet-mgr", "--iface='enp0s8'"]}]}}}}'  
+    changed_when: no
+
+  - name: Checking availability of workers    
+    shell: ping -c 10 192.168.56.101
+    changed_when: no
+
+
+
+#   - name: Take token from masters
+#     shell: |
+#       kubeadm token list | awk NR==2'{print $1}' > /vagrant/token
+
+
+
+- hosts: workers
+  become: yes
+  tasks:
+  
+  - name: Join
+    shell: |
+        $(cat /vagrant/initfile | grep "kubeadm join")
+
+#       kubeadm join --token $(cat /vagrant/token) --discovery-token-unsafe-skip-ca-verification 192.168.56.100:6443
+    register: output
+    args:
+      creates: /etc/kubernetes/kubelet.conf
+    failed_when: "'Failed' in output.stdout"
+
+
+
+
+  # - name: Join node
+  #   shell: kubeadm join --token $(cat /vagrant/token) --discovery-token-unsafe-skip-ca-verification 192.168.56.100:6443
+
+
+# 
+# export ANSIBLE_LOG_PATH=/home/student/Documents/ansible/ansible.log
+# export ANSIBLE_DEBUG=True
+# less $ANSIBLE_LOG_PATH

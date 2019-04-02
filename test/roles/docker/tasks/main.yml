@@ -1,0 +1,36 @@
+---
+# tasks file for docker
+
+- name: install docker
+  package: name=docker state=installed
+  notify: docker installed
+
+- name: get version of dockr
+  shell: docker -v | cut -f 5 -d" "
+  register: docker_build_version
+  changed_when: False
+  notify: docker installed
+
+- meta: flush_handlers
+ 
+- name: Disable selinux
+  selinux:
+    state: disabled
+
+- name: Make sure a service is running and enabled
+  systemd:
+    state: started
+    enabled: yes
+    name: docker
+
+- name: Remove swapfile from /etc/fstab
+  mount:
+    name: swap
+    fstype: swap
+    state: absent
+
+- name: Disable swap
+  command: swapoff -a
+  when: ansible_swaptotal_mb > 0
+
+

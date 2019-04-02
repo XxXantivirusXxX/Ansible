@@ -1,0 +1,22 @@
+---
+# handlers file for k8s-base
+
+- name: sysctl update
+  shell: sysctl --system
+  listen: sysctl update
+
+- name: get version of kubelet
+  shell: kubelet --version | cut -f 2 -d" "
+  register: kubelet_version
+  changed_when: False
+
+
+- name: kubelet details
+  copy: 
+    content: >
+      {
+        "Docker-Build": "{{ kubelet_version.stdout }}",
+      }
+    dest: /etc/ansible/facts.d/docker.fact
+  listen: kubelet_version
+  become: yes

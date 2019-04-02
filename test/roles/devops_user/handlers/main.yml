@@ -1,0 +1,9 @@
+---
+# handlers file for devops_user
+
+- name: Add devops to sudoers    
+  lineinfile:
+    dest: /etc/sudoers
+    line: 'devops    ALL=(ALL)       NOPASSWD:ALL'
+  listen: Add devops to sudoers
+

@@ -1,0 +1,6 @@
+---
+# tasks file for k8s-worker
+
+
+- name: join worker to master
+  command: "{{ hostvars['192.168.56.100']['join_workers'] }}"

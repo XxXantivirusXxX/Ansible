@@ -1,0 +1,30 @@
+---
+# tasks file for devops_user
+
+- name: Create a user devops
+  user: 
+    name: devops
+    password: "{{ 'devops' | password_hash('sha512', 'mysecretsalt') }}"
+  notify: Add devops to sudoers
+
+- name: Creates directory
+  file:
+    path: $HOME/.ssh
+    state: directory
+    mode: 0755
+    owner: devops
+    group: devops    
+
+- name: Add devops to sudoers
+  lineinfile:
+    path: /etc/sudoers
+    line: 'devops ALL=(ALL) NOPASSWD:ALL'
+  
+- name: Copy key
+  copy:
+    src: devops.pem
+    dest: $HOME/.ssh/authorized_key
+    owner: devops
+    group: devops
+
+

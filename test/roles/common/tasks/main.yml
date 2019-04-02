@@ -1,0 +1,17 @@
+---
+# tasks file for common
+
+- name: install packages
+  yum:
+    name: deltarpm, epel-release, ntp, jq, net-tools, bind-utils, moreutils
+    state: present
+    update_cache: true
+
+- name: start ntpd
+  service:
+    name: ntpd          
+    enabled: yes
+    state: started
+
+
+    

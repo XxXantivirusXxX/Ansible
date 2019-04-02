@@ -1,0 +1,57 @@
+- hosts: all
+  become: yes
+  tasks:
+  - name: Create a user devops
+    user: 
+      name: devops
+      password: "{{ 'devops' | password_hash('sha512', 'mysecretsalt') }}"
+
+  - name: Creates directory
+    file:
+      path: /home/devops/.ssh
+      state: directory
+      mode: 0755
+
+  - name: Copy key
+    copy:
+      src: /home/student/.ssh/devops.pem.pub
+      dest: /home/devops/.ssh/authorized_key
+      owner: devops
+      group: devops
+
+  - name: Add devops to sudoers    
+    lineinfile:
+      dest: /etc/sudoers
+      line: 'devops    ALL=(ALL)       ALL'
+
+  - name: Processor count
+    shell: cat /proc/cpuinfo | grep processor | wc -l
+    register: processor_count
+
+  - debug: var=processor_count.stdout_lines  
+
+  - name: hostname
+    shell: hostname
+    register: output
+
+  - debug: var=output.stdout_lines  
+
+  - name: IP
+    shell: hostname -I
+    register: output
+
+  - debug: var=output.stdout_lines
+  - debug: var=ansible_memory_mb
+  - debug: msg="total RAM is {{ ansible_memory_mb.real.total }}"
+
+
+ # - name: Add devops to sudoers
+  #  shell: echo "root    ALL=(ALL)       ALL" >> /etc/sudoers
+
+      
+#ansible all -i inventory -m authorized_key -a "user=devops state=present key='$(cat ~/.ssh/#id_rsa.pub)'" -c paramiko -u devops -k
+#ansible all -m ping -i inventory -u devops
+
+
+ #ansible-playbook test -i inventory -u root -k -c paramiko
+

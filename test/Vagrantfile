@@ -1,0 +1,29 @@
+Vagrant.configure("2") do |config|
+  # Base Vagrant Box,
+  # CentOS 7.5 Minimal,
+  # 20 GB HDD, nothing extra
+  config.vm.box = "sbeliakou/centos"
+
+  config.vm.define "mas" do |ms|
+  ms.vm.network :private_network, ip: "192.168.56.100"
+  ms.vm.hostname = "mas"
+  
+  ms.ssh.insert_key = false
+  ms.vm.provider "virtualbox" do |vb|
+    vb.name = "masnode"
+    vb.memory = "2048"
+ end
+end
+
+config.vm.define "worker" do |wr|
+  wr.vm.network :private_network, ip: "192.168.56.101"
+  wr.vm.hostname = "workernode"
+  
+  wr.ssh.insert_key = false
+  wr.vm.provider "virtualbox" do |vs|
+    vs.name = "workernode"
+    vs.memory = "2048"
+   end
+  end
+end
+

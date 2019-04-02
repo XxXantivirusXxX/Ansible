@@ -1,0 +1,35 @@
+- hosts: all
+  become: yes
+  gather_facts: True
+  vars:
+   join_workers: absent  
+
+  pre_tasks:
+  - name: Create /etc/ansible/facts.d
+    file:
+      path: /etc/ansible/facts.d
+      state: directory
+    become: yes
+
+  roles:
+    - common
+    - devops_user
+    - k8s-base
+
+  
+- hosts: masters
+  gather_facts: True
+  become: yes
+  roles:
+    - role: k8s-master    
+
+ 
+- hosts: workers   
+  gather_facts: True
+  become: yes
+  roles:
+    - role: k8s-worker    
+
+ 
+
+

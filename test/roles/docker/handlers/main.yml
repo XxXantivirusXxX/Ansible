@@ -1,0 +1,14 @@
+---
+# handlers file for docker
+
+
+
+- name: docker details
+  copy: 
+    content: >
+      {
+        "Docker-Build": "{{ docker_build_version.stdout }}",
+      }
+    dest: /etc/ansible/facts.d/docker.fact
+  listen: docker installed
+  become: yes
